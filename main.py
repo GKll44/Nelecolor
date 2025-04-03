@@ -9,7 +9,7 @@ import locale
 class NeleColorMain:
     def __init__(self, root):
         self.root = root
-        self._init_language_system()  # 必须先初始化语言系统
+        self._init_language_system()
         self.root.title(self.text["title"])
         self.root.geometry("800x650")
         self._load_icon()
@@ -47,9 +47,10 @@ class NeleColorMain:
                 "invalid_header": "无效文件头",
                 "missing_pixels": "缺少{}像素",
                 "extra_pixels": "多余{}像素",
-                "color_range": "颜色值越界 (0-FF)",
+                "color_range": "颜色值越界 (0-FF)，卧槽，这样的错误都被你整出来了？！",
                 "file_type": "NeleColor文件",
-                "image_files": "图片文件"
+                "image_files": "图片文件",
+                "error_docs_link": "点击此链接文档查看错误原因"
             },
             "en": {
                 "title": "NeleColor",
@@ -76,9 +77,10 @@ class NeleColorMain:
                 "invalid_header": "Invalid header",
                 "missing_pixels": "Missing {} pixels",
                 "extra_pixels": "Extra {} pixels",
-                "color_range": "Color out of range (0-FF)",
+                "color_range": "Color out of range (0-FF) what the hell?!such a mistake has been made by you?!",
                 "file_type": "NeleColor Files",
-                "image_files": "Image Files"
+                "image_files": "Image Files",
+                "error_docs_link": "Click this link for error reasons"
             }
         }
         self.text = self.LANGUAGE_TEXTS[lang]
@@ -97,10 +99,8 @@ class NeleColorMain:
             pass
 
     def _setup_ui(self):
-        # 菜单栏
         menubar = tk.Menu(self.root)
         
-        # 文件菜单
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label=self.text["menu_open"], command=self._open_file)
         self.export_menu_item = file_menu.add_command(
@@ -112,14 +112,12 @@ class NeleColorMain:
         file_menu.add_command(label=self.text["menu_exit"], command=self.root.quit)
         menubar.add_cascade(label=self.text["menu_file"], menu=file_menu)
         
-        # 帮助菜单
         help_menu = tk.Menu(menubar, tearoff=0)
         help_menu.add_command(label=self.text["menu_docs"], command=self._open_documentation)
         help_menu.add_command(label=self.text["menu_about"], command=self._show_about)
         menubar.add_cascade(label=self.text["menu_help"], menu=help_menu)
         self.root.config(menu=menubar)
 
-        # 顶部信息区域
         top_frame = tk.Frame(self.root)
         top_frame.pack(fill=tk.X, padx=10, pady=5)
         
@@ -132,7 +130,6 @@ class NeleColorMain:
         self.format_label = tk.Label(top_frame, text=self.text["format"], anchor=tk.W)
         self.format_label.pack(fill=tk.X)
 
-        # 图片预览区域
         self.preview_canvas = tk.Canvas(self.root, bg="#f0f0f0", bd=2, relief=tk.SUNKEN)
         self.preview_canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.preview_canvas.create_text(
@@ -142,11 +139,9 @@ class NeleColorMain:
             fill="gray"
         )
 
-        # 底部工具栏
         toolbar = tk.Frame(self.root)
         toolbar.pack(fill=tk.X, padx=10, pady=5)
         
-        # 旋转按钮
         self.rotate_left_btn = tk.Button(
             toolbar,
             text="↺",
@@ -188,7 +183,12 @@ class NeleColorMain:
             self._enable_controls()
             
         except Exception as e:
-            messagebox.showerror(self.text["error"], self.text["error_parse"].format(str(e)))
+            self._show_error_with_link(
+                self.text["error"],
+                self.text["error_parse"].format(str(e)),
+                self.text["error_docs_link"],
+                "https://gkll44.github.io/NeleColorDocuments.github.io/#error-reason"
+            )
 
     def _parse_nelecolor(self, file_path):
         with open(file_path, "rb") as f:
@@ -289,11 +289,16 @@ class NeleColorMain:
             self.original_image.save(save_path)
             messagebox.showinfo(self.text["success"][:2], self.text["success"].format(save_path))
         except Exception as e:
-            messagebox.showerror(self.text["error"], self.text["error_export"].format(str(e)))
+            self._show_error_with_link(
+                self.text["error"],
+                self.text["error_export"].format(str(e)),
+                self.text["error_docs_link"],
+                "https://gkll44.github.io/NeleColorDocuments.github.io/#error-reason"
+            )
 
     def _open_documentation(self):
          try:
-             webbrowser.open("https://gkll44.github.io/NeleColorDocuments.github.io/")
+             webbrowser.open("https://gkll44.github.io/NeleColorDocuments.github.io/#error-reason")
          except Exception as e:
              messagebox.showerror(self.text["error"], self.text["error_docs"].format(str(e)))
 
@@ -312,7 +317,6 @@ class NeleColorMain:
         tk.Label(about, text="NeleColor", font=("Arial", 18, "bold")).pack(pady=10)
         tk.Label(about, text="by GKll44", fg="green").pack()
         
-        # 链接区域
         links = tk.Frame(about)
         links.pack(pady=20)
         
@@ -325,6 +329,21 @@ class NeleColorMain:
         bilibili.bind("<Button-1>", lambda e: webbrowser.open("https://space.bilibili.com/3461577971861852"))
         
         tk.Button(about, text=self.text["close"], command=about.destroy, width=10).pack(pady=10)
+
+    def _show_error_with_link(self, title, main_message, link_text, url):
+        top = tk.Toplevel(self.root)
+        top.title(title)
+        top.geometry("200x150")
+        
+        msg_label = tk.Label(top, text=main_message, wraplength=380, justify=tk.LEFT)
+        msg_label.pack(pady=10)
+        
+        link = tk.Label(top, text=link_text, fg="blue", cursor="hand2")
+        link.pack()
+        link.bind("<Button-1>", lambda e: webbrowser.open(url))
+        
+        btn = tk.Button(top, text=self.text["close"], command=top.destroy)
+        btn.pack(pady=10)
 
 if __name__ == "__main__":
     root = tk.Tk()
