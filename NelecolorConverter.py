@@ -4,7 +4,7 @@ from PIL import Image
 from PIL import ImageTk
 import os
 
-class NeleColorConverter:#转换器，制作者也是nelecolor的作者（gkll44）
+class NeleColorConverter:
     def __init__(self, root):
         self.root = root
         self.root.title("NeleColor converter")
@@ -12,6 +12,7 @@ class NeleColorConverter:#转换器，制作者也是nelecolor的作者（gkll44
         
         self.image_path = None
         self.preview_image = None
+        self.encoding_format = tk.StringVar(value="rgb")  # Default to RGB
         self.setup_ui()
     
     def setup_ui(self):
@@ -25,6 +26,26 @@ class NeleColorConverter:#转换器，制作者也是nelecolor的作者（gkll44
         self.control_frame = tk.Frame(self.root, width=400, height=500, padx=20, pady=20)
         self.control_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.control_frame.pack_propagate(False)
+        
+        # Encoding format selection
+        format_frame = tk.Frame(self.control_frame)
+        format_frame.pack(fill=tk.X, pady=10)
+        
+        tk.Label(format_frame, text="编码格式:").pack(side=tk.LEFT)
+        
+        tk.Radiobutton(
+            format_frame, 
+            text="RGB", 
+            variable=self.encoding_format, 
+            value="rgb"
+        ).pack(side=tk.LEFT, padx=10)
+        
+        tk.Radiobutton(
+            format_frame, 
+            text="RGBA", 
+            variable=self.encoding_format, 
+            value="rgba"
+        ).pack(side=tk.LEFT)
         
         # 导入
         self.import_btn = tk.Button(
@@ -84,7 +105,7 @@ class NeleColorConverter:#转换器，制作者也是nelecolor的作者（gkll44
         if not self.image_path:
             return
         
-        img = Image.open(self.image_path).convert("RGB")
+        img = Image.open(self.image_path)
         width, height = img.size
         ext = os.path.splitext(self.image_path)[1].lower()  #指".png"
         
@@ -100,24 +121,33 @@ class NeleColorConverter:#转换器，制作者也是nelecolor的作者（gkll44
         
         try:
             with open(save_path, "wb") as f:
-                # 写入元信息头（直接字符串）
-                header = f"{width}x{height}{ext}\n"  #指在文件中"256x256.png"
+                # 写入元信息头（包含编码格式）
+                encoding = self.encoding_format.get()
+                header = f"{width}x{height}{ext}:{encoding}\n"  # 例如 "256x256.png:rgba"
                 f.write(header.encode("utf-8"))
                 
-                # 写入2或者16进制像素数据
-                for y in range(height):
-                    for x in range(width):
-                        r, g, b = img.getpixel((x, y))
-                        f.write(bytes([r, g, b]))
+                # 根据选择的格式写入像素数据
+                if encoding == "rgb":
+                    img = img.convert("RGB")
+                    for y in range(height):
+                        for x in range(width):
+                            r, g, b = img.getpixel((x, y))
+                            f.write(bytes([r, g, b]))
+                else:  # rgba
+                    img = img.convert("RGBA")
+                    for y in range(height):
+                        for x in range(width):
+                            r, g, b, a = img.getpixel((x, y))
+                            f.write(bytes([r, g, b, a]))
             
-            messagebox.showinfo("成功", f"文件已导出为NeleColor格式:\n{save_path}")#消息框
-            self.status_label.config(text=f"导出完成: {os.path.basename(save_path)}", fg="blue")#更改状态信息
+            messagebox.showinfo("成功", f"文件已导出为NeleColor格式:\n{save_path}")
+            self.status_label.config(text=f"导出完成: {os.path.basename(save_path)}", fg="blue")
         
         except Exception as e:
             messagebox.showerror("错误", f"导出失败:\n{e}")
-            self.status_label.config(text="导出失败", fg="red")#更改状态信息
+            self.status_label.config(text="导出失败", fg="red")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = NeleColorConverterApp(root)
+    app = NeleColorConverter(root)
     root.mainloop()
